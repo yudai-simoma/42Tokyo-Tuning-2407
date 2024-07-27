@@ -10,38 +10,34 @@ use crate::utils::{generate_session_token, hash_password, verify_password};
 
 use super::dto::auth::LoginResponseDto;
 
+/// 認証リポジトリのトレイト
 pub trait AuthRepository {
-    async fn create_user(&self, username: &str, password: &str, role: &str)
-        -> Result<(), AppError>;
+    async fn create_user(&self, username: &str, password: &str, role: &str) -> Result<(), AppError>;
     async fn find_user_by_id(&self, id: i32) -> Result<Option<User>, AppError>;
     async fn find_user_by_username(&self, username: &str) -> Result<Option<User>, AppError>;
     async fn create_dispatcher(&self, user_id: i32, area_id: i32) -> Result<(), AppError>;
     async fn find_dispatcher_by_id(&self, id: i32) -> Result<Option<Dispatcher>, AppError>;
-    async fn find_dispatcher_by_user_id(
-        &self,
-        user_id: i32,
-    ) -> Result<Option<Dispatcher>, AppError>;
-    async fn find_profile_image_name_by_user_id(
-        &self,
-        user_id: i32,
-    ) -> Result<Option<String>, AppError>;
+    async fn find_dispatcher_by_user_id(&self, user_id: i32) -> Result<Option<Dispatcher>, AppError>;
+    async fn find_profile_image_name_by_user_id(&self, user_id: i32) -> Result<Option<String>, AppError>;
     async fn authenticate_user(&self, username: &str, password: &str) -> Result<User, AppError>;
     async fn create_session(&self, user_id: i32, session_token: &str) -> Result<(), AppError>;
     async fn delete_session(&self, session_token: &str) -> Result<(), AppError>;
-    async fn find_session_by_session_token(&self, session_token: &str)
-        -> Result<Session, AppError>;
+    async fn find_session_by_session_token(&self, session_token: &str) -> Result<Session, AppError>;
 }
 
+/// 認証サービスの構造体
 #[derive(Debug)]
 pub struct AuthService<T: AuthRepository + std::fmt::Debug> {
     repository: T,
 }
 
 impl<T: AuthRepository + std::fmt::Debug> AuthService<T> {
+    /// 新しい認証サービスを作成する
     pub fn new(repository: T) -> Self {
         AuthService { repository }
     }
 
+    /// ユーザーを登録する
     pub async fn register_user(
         &self,
         username: &str,
@@ -103,6 +99,7 @@ impl<T: AuthRepository + std::fmt::Debug> AuthService<T> {
         }
     }
 
+    /// ユーザーをログインさせる
     pub async fn login_user(
         &self,
         username: &str,
@@ -148,11 +145,13 @@ impl<T: AuthRepository + std::fmt::Debug> AuthService<T> {
         }
     }
 
+    /// ユーザーをログアウトさせる
     pub async fn logout_user(&self, session_token: &str) -> Result<(), AppError> {
         self.repository.delete_session(session_token).await?;
         Ok(())
     }
 
+    /// プロフィール画像をリサイズして取得する
     pub async fn get_resized_profile_image_byte(&self, user_id: i32) -> Result<Bytes, AppError> {
         let profile_image_name = match self
             .repository
@@ -190,6 +189,7 @@ impl<T: AuthRepository + std::fmt::Debug> AuthService<T> {
         }
     }
 
+    /// セッションを検証する
     pub async fn validate_session(&self, session_token: &str) -> Result<bool, AppError> {
         let session = self
             .repository

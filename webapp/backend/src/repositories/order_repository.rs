@@ -4,18 +4,27 @@ use crate::models::order::{CompletedOrder, Order};
 use chrono::{DateTime, Utc};
 use sqlx::mysql::MySqlPool;
 
+/// 注文リポジトリの実装構造体
 #[derive(Debug)]
 pub struct OrderRepositoryImpl {
     pool: MySqlPool,
 }
 
 impl OrderRepositoryImpl {
+    /// 新しい `OrderRepositoryImpl` を作成する
+    ///
+    /// `pool` - MySQL の接続プール
     pub fn new(pool: MySqlPool) -> Self {
         OrderRepositoryImpl { pool }
     }
 }
 
 impl OrderRepository for OrderRepositoryImpl {
+    /// 注文IDで注文を検索する
+    ///
+    /// `id` - 注文ID
+    ///
+    /// 成功した場合は `Order` を返し、失敗した場合は `AppError` を返す
     async fn find_order_by_id(&self, id: i32) -> Result<Order, AppError> {
         let order = sqlx::query_as::<_, Order>(
             "SELECT 
@@ -32,6 +41,12 @@ impl OrderRepository for OrderRepositoryImpl {
         Ok(order)
     }
 
+    /// 注文のステータスを更新する
+    ///
+    /// `order_id` - 注文ID
+    /// `status` - 新しいステータス
+    ///
+    /// 成功した場合は `()` を返し、失敗した場合は `AppError` を返す
     async fn update_order_status(&self, order_id: i32, status: &str) -> Result<(), AppError> {
         sqlx::query("UPDATE orders SET status = ? WHERE id = ?")
             .bind(status)
@@ -42,6 +57,16 @@ impl OrderRepository for OrderRepositoryImpl {
         Ok(())
     }
 
+    /// ページネーションされた注文リストを取得する
+    ///
+    /// `page` - ページ番号
+    /// `page_size` - 1ページあたりの注文数
+    /// `sort_by` - ソートするフィールド
+    /// `sort_order` - ソート順序（ASC または DESC）
+    /// `status` - 注文のステータス
+    /// `area` - エリアID
+    ///
+    /// 成功した場合は `Vec<Order>` を返し、失敗した場合は `AppError` を返す
     async fn get_paginated_orders(
         &self,
         page: i32,
@@ -61,8 +86,7 @@ impl OrderRepository for OrderRepositoryImpl {
                 _ => "o.order_time",
             },
             match sort_order.as_deref() {
-                Some("DESC") => "DESC",
-                Some("desc") => "DESC",
+                Some("DESC") | Some("desc") => "DESC",
                 _ => "ASC",
             }
         );
@@ -136,6 +160,13 @@ impl OrderRepository for OrderRepositoryImpl {
         Ok(orders)
     }
 
+    /// 新しい注文を作成する
+    ///
+    /// `client_id` - クライアントID
+    /// `node_id` - ノードID
+    /// `car_value` - 車の価値
+    ///
+    /// 成功した場合は `()` を返し、失敗した場合は `AppError` を返す
     async fn create_order(
         &self,
         client_id: i32,
@@ -152,6 +183,13 @@ impl OrderRepository for OrderRepositoryImpl {
         Ok(())
     }
 
+    /// 注文のディスパッチ情報を更新する
+    ///
+    /// `id` - 注文ID
+    /// `dispatcher_id` - ディスパッチャーID
+    /// `tow_truck_id` - レッカー車ID
+    ///
+    /// 成功した場合は `()` を返し、失敗した場合は `AppError` を返す
     async fn update_order_dispatched(
         &self,
         id: i32,
@@ -170,6 +208,13 @@ impl OrderRepository for OrderRepositoryImpl {
         Ok(())
     }
 
+    /// 完了した注文を作成する
+    ///
+    /// `order_id` - 注文ID
+    /// `tow_truck_id` - レッカー車ID
+    /// `completed_time` - 完了時間
+    ///
+    /// 成功した場合は `()` を返し、失敗した場合は `AppError` を返す
     async fn create_completed_order(
         &self,
         order_id: i32,
@@ -186,6 +231,9 @@ impl OrderRepository for OrderRepositoryImpl {
         Ok(())
     }
 
+    /// 全ての完了した注文を取得する
+    ///
+    /// 成功した場合は `Vec<CompletedOrder>` を返し、失敗した場合は `AppError` を返す
     async fn get_all_completed_orders(&self) -> Result<Vec<CompletedOrder>, AppError> {
         let orders = sqlx::query_as::<_, CompletedOrder>(
             "SELECT co.id, co.order_id, co.tow_truck_id, co.order_time, co.completed_time, o.car_value

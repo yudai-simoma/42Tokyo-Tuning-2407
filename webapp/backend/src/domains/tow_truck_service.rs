@@ -5,7 +5,9 @@ use crate::errors::AppError;
 use crate::models::graph::Graph;
 use crate::models::tow_truck::TowTruck;
 
+/// レッカー車リポジトリのトレイト
 pub trait TowTruckRepository {
+    /// ページネーションされたレッカー車リストを取得する
     async fn get_paginated_tow_trucks(
         &self,
         page: i32,
@@ -13,11 +15,18 @@ pub trait TowTruckRepository {
         status: Option<String>,
         area_id: Option<i32>,
     ) -> Result<Vec<TowTruck>, AppError>;
+    
+    /// レッカー車の位置を更新する
     async fn update_location(&self, truck_id: i32, node_id: i32) -> Result<(), AppError>;
+    
+    /// レッカー車のステータスを更新する
     async fn update_status(&self, truck_id: i32, status: &str) -> Result<(), AppError>;
+    
+    /// IDに基づいてレッカー車を検索する
     async fn find_tow_truck_by_id(&self, id: i32) -> Result<Option<TowTruck>, AppError>;
 }
 
+/// レッカー車サービスの構造体
 #[derive(Debug)]
 pub struct TowTruckService<
     T: TowTruckRepository + std::fmt::Debug,
@@ -35,6 +44,7 @@ impl<
         V: MapRepository + std::fmt::Debug,
     > TowTruckService<T, U, V>
 {
+    /// 新しいレッカー車サービスを作成する
     pub fn new(tow_truck_repository: T, order_repository: U, map_repository: V) -> Self {
         TowTruckService {
             tow_truck_repository,
@@ -43,11 +53,13 @@ impl<
         }
     }
 
+    /// IDに基づいてレッカー車を取得する
     pub async fn get_tow_truck_by_id(&self, id: i32) -> Result<Option<TowTruckDto>, AppError> {
         let tow_truck = self.tow_truck_repository.find_tow_truck_by_id(id).await?;
         Ok(tow_truck.map(TowTruckDto::from_entity))
     }
 
+    /// ページネーションされたレッカー車リストを取得する
     pub async fn get_all_tow_trucks(
         &self,
         page: i32,
@@ -67,6 +79,7 @@ impl<
         Ok(tow_truck_dtos)
     }
 
+    /// レッカー車の位置を更新する
     pub async fn update_location(&self, truck_id: i32, node_id: i32) -> Result<(), AppError> {
         self.tow_truck_repository
             .update_location(truck_id, node_id)
@@ -75,6 +88,11 @@ impl<
         Ok(())
     }
 
+    /// 最寄りの利用可能なレッカー車を取得する
+    /// 
+    /// ボトルネックになりうる箇所: グラフ計算とソート処理
+    /// - グラフの構築と最短経路計算は計算コストが高い可能性があります
+    /// - レッカー車のソートも、レッカー車の数が多い場合は処理時間がかかる可能性があります
     pub async fn get_nearest_available_tow_trucks(
         &self,
         order_id: i32,
@@ -127,6 +145,7 @@ impl<
     }
 }
 
+/// グラフ上の2つのノード間の最短距離を計算する
 fn calculate_distance(graph: &Graph, node_id_1: i32, node_id_2: i32) -> i32 {
     graph.shortest_path(node_id_1, node_id_2)
 }

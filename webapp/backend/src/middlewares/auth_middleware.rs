@@ -10,11 +10,17 @@ use crate::{
     domains::auth_service::AuthService, repositories::auth_repository::AuthRepositoryImpl,
 };
 
+/// 認証ミドルウェアの構造体
+/// 
+/// `auth_service` - 認証サービスのインスタンス
 pub struct AuthMiddleware {
     auth_service: Arc<AuthService<AuthRepositoryImpl>>,
 }
 
 impl AuthMiddleware {
+    /// 新しい認証ミドルウェアを作成する
+    /// 
+    /// `auth_service` - 認証サービスのインスタンス
     pub fn new(auth_service: Arc<AuthService<AuthRepositoryImpl>>) -> Self {
         AuthMiddleware { auth_service }
     }
@@ -32,6 +38,9 @@ where
     type Transform = AuthMiddlewareMiddleware<S>;
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
+    /// 新しいトランスフォームを作成する
+    /// 
+    /// `service` - 次のサービス
     fn new_transform(&self, service: S) -> Self::Future {
         ready(Ok(AuthMiddlewareMiddleware {
             service,
@@ -40,6 +49,10 @@ where
     }
 }
 
+/// 認証ミドルウェアの内部構造体
+/// 
+/// `service` - 次のサービス
+/// `auth_service` - 認証サービスのインスタンス
 pub struct AuthMiddlewareMiddleware<S> {
     service: S,
     auth_service: Arc<AuthService<AuthRepositoryImpl>>,
@@ -56,7 +69,11 @@ where
 
     forward_ready!(service);
 
+    /// リクエストを処理する
+    /// 
+    /// `req` - サービスリクエスト
     fn call(&self, req: ServiceRequest) -> Self::Future {
+        // Authorization ヘッダーを取得
         let auth_header = req
             .headers()
             .get("Authorization")
@@ -68,11 +85,13 @@ where
         let fut = self.service.call(req);
 
         Box::pin(async move {
+            // トークンの検証
             let is_valid_token = match &*auth_header {
                 Some(token) => auth_service.validate_session(token).await.is_ok(),
                 None => false,
             };
 
+            // トークンが有効な場合は次のサービスを呼び出し、無効な場合はエラーを返す
             if is_valid_token {
                 fut.await
             } else {

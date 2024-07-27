@@ -1,15 +1,17 @@
 use serde::{Deserialize, Serialize};
 
-// Input Data Structure
+// 入力データ構造
 
+/// 位置更新リクエストのデータ構造
 #[derive(Deserialize, Debug)]
 pub struct UpdateLocationRequestDto {
     pub tow_truck_id: i32,
     pub node_id: i32,
 }
 
-// Output Data Structure
+// 出力データ構造
 
+/// レッカー車のデータ構造
 #[derive(Serialize, Clone)]
 pub struct TowTruckDto {
     pub id: i32,
@@ -21,6 +23,7 @@ pub struct TowTruckDto {
 }
 
 impl TowTruckDto {
+    /// TowTruck エンティティから TowTruckDto を生成する関数
     pub fn from_entity(entity: crate::models::tow_truck::TowTruck) -> Self {
         TowTruckDto {
             id: entity.id,

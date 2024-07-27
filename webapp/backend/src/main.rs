@@ -27,13 +27,16 @@ mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // データベース接続プールを作成
     let pool = infrastructure::db::create_pool().await;
     let mut port = 8080;
 
+    // デバッグモードの場合、ポートを変更
     if cfg!(debug_assertions) {
         port = 18080;
     }
 
+    // サービスの初期化
     let auth_service = web::Data::new(AuthService::new(AuthRepositoryImpl::new(pool.clone())));
     let auth_service_for_middleware =
         Arc::new(AuthService::new(AuthRepositoryImpl::new(pool.clone())));
@@ -50,7 +53,9 @@ async fn main() -> std::io::Result<()> {
     ));
     let map_service = web::Data::new(MapService::new(MapRepositoryImpl::new(pool.clone())));
 
+    // HTTPサーバーの起動
     HttpServer::new(move || {
+        // CORS設定
         let mut cors = Cors::default();
 
         cors = cors
@@ -63,6 +68,7 @@ async fn main() -> std::io::Result<()> {
             .supports_credentials()
             .max_age(3600);
 
+        // アプリケーションの設定
         App::new()
             .app_data(tow_truck_service.clone())
             .app_data(auth_service.clone())

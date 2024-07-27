@@ -2,6 +2,7 @@ use actix_web::{HttpResponse, ResponseError};
 use serde::Serialize;
 use thiserror::Error;
 
+/// アプリケーションエラーの列挙型
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("Bad Request")]
@@ -18,12 +19,14 @@ pub enum AppError {
     SqlxError(#[from] sqlx::Error),
 }
 
+/// エラーレスポンスの構造体
 #[derive(Serialize)]
 struct ErrorResponse {
     message: String,
 }
 
 impl ResponseError for AppError {
+    /// エラーレスポンスを生成する
     fn error_response(&self) -> HttpResponse {
         let error_message = self.to_string();
         let error_response = ErrorResponse {
@@ -35,9 +38,7 @@ impl ResponseError for AppError {
             AppError::Unauthorized => HttpResponse::Unauthorized().json(error_response),
             AppError::NotFound => HttpResponse::NotFound().json(error_response),
             AppError::Conflict => HttpResponse::Conflict().json(error_response),
-            AppError::InternalServerError => {
-                HttpResponse::InternalServerError().json(error_response)
-            }
+            AppError::InternalServerError => HttpResponse::InternalServerError().json(error_response),
             AppError::SqlxError(_) => HttpResponse::InternalServerError().json(error_response),
         }
     }
