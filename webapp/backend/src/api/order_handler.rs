@@ -10,6 +10,13 @@ use crate::repositories::tow_truck_repository::TowTruckRepositoryImpl;
 use actix_web::{web, HttpResponse};
 use serde::Deserialize;
 
+/// 注文ステータス更新リクエストを処理するハンドラー関数
+/// 
+/// `service` - 注文サービスのインスタンス
+/// `req` - 注文ステータス更新リクエストのデータ
+/// 
+/// 成功した場合、HTTP 200 OK レスポンスを返す
+/// 失敗した場合、AppError を返す
 pub async fn update_order_status_handler(
     service: web::Data<
         OrderService<
@@ -27,6 +34,13 @@ pub async fn update_order_status_handler(
     }
 }
 
+/// 注文IDに基づいて注文情報を取得するハンドラー関数
+/// 
+/// `service` - 注文サービスのインスタンス
+/// `path` - 注文IDのパスパラメータ
+/// 
+/// 成功した場合、HTTP 200 OK レスポンスと注文情報を返す
+/// 失敗した場合、AppError を返す
 pub async fn get_order_handler(
     service: web::Data<
         OrderService<
@@ -44,6 +58,7 @@ pub async fn get_order_handler(
     }
 }
 
+/// ページネーションされた注文リストを取得するためのクエリパラメータ
 #[derive(Deserialize, Debug)]
 pub struct PaginatedOrderQuery {
     page: Option<i32>,
@@ -54,6 +69,16 @@ pub struct PaginatedOrderQuery {
     area: Option<i32>,
 }
 
+/// ページネーションされた注文リストを取得するハンドラー関数
+/// 
+/// `service` - 注文サービスのインスタンス
+/// `query` - ページネーションとフィルタリングのクエリパラメータ
+/// 
+/// 成功した場合、HTTP 200 OK レスポンスと注文リストを返す
+/// 失敗した場合、AppError を返す
+/// 
+/// ボトルネックになりうる箇所: データベースからの大量データ取得
+/// - ページネーションとフィルタリングを適用することで、データベースからの取得負荷を軽減しています
 pub async fn get_paginated_orders_handler(
     service: web::Data<
         OrderService<
@@ -81,6 +106,13 @@ pub async fn get_paginated_orders_handler(
     }
 }
 
+/// クライアント注文を作成するハンドラー関数
+/// 
+/// `service` - 注文サービスのインスタンス
+/// `req` - クライアント注文リクエストのデータ
+/// 
+/// 成功した場合、HTTP 201 Created レスポンスを返す
+/// 失敗した場合、AppError を返す
 pub async fn create_client_order_handler(
     service: web::Data<
         OrderService<
@@ -101,6 +133,13 @@ pub async fn create_client_order_handler(
     }
 }
 
+/// ディスパッチャー注文を作成するハンドラー関数
+/// 
+/// `service` - 注文サービスのインスタンス
+/// `req` - ディスパッチャー注文リクエストのデータ
+/// 
+/// 成功した場合、HTTP 200 OK レスポンスを返す
+/// 失敗した場合、AppError を返す
 pub async fn create_dispatcher_order_handler(
     service: web::Data<
         OrderService<

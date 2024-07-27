@@ -1,5 +1,6 @@
 use sqlx::FromRow;
 
+/// ユーザーを表す構造体
 #[derive(FromRow, Clone, Debug)]
 pub struct User {
     pub id: i32,
@@ -9,6 +10,7 @@ pub struct User {
     pub role: String,
 }
 
+/// セッションを表す構造体
 #[derive(FromRow, Clone, Debug)]
 pub struct Session {
     pub id: i32,
@@ -17,6 +19,7 @@ pub struct Session {
     pub is_valid: bool,
 }
 
+/// ドライバーを表す構造体
 #[derive(FromRow, Clone, Debug)]
 pub struct Driver {
     pub id: i32,
@@ -25,6 +28,7 @@ pub struct Driver {
     pub is_valid: bool,
 }
 
+/// ディスパッチャーを表す構造体
 #[derive(FromRow, Clone, Debug)]
 pub struct Dispatcher {
     pub id: i32,

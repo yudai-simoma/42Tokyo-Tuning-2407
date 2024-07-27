@@ -3,6 +3,7 @@
 import { getSession, Role, User } from "@/api/user";
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
+// 認証コンテキストの型定義
 interface AuthContextType {
   isAuthenticated: boolean;
   sessionToken: string | null;
@@ -14,9 +15,12 @@ interface AuthContextType {
   removeUserInfo: () => void;
 }
 
+// 認証コンテキストの作成
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// 認証プロバイダーコンポーネント
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // 認証状態を管理するための状態変数
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | undefined>(undefined);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [role, setRole] = useState<Role | null>(null);
@@ -24,6 +28,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [dispatcherId, setDispatcherId] = useState<number | null>(null);
   const [areaId, setAreaId] = useState<number | null>(null);
 
+  // ユーザー情報を設定する内部関数
   const setUserInfoState = (user: User) => {
     setSessionToken(user.session_token);
     setRole(user.role);
@@ -34,11 +39,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  // ユーザー情報を設定し、認証状態を更新する関数
   const setUserInfo = (user: User) => {
     setIsAuthenticated(true);
     setUserInfoState(user);
   };
 
+  // ユーザー情報をクリアし、認証状態をリセットする関数
   const removeUserInfo = () => {
     setIsAuthenticated(false);
     setSessionToken(null);
@@ -48,6 +55,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setAreaId(null);
   };
 
+  // ユーザーの認証状態を確認する関数
   const verifyUser = async () => {
     if (window.location.pathname === "/login") {
       setIsAuthenticated(false);
@@ -64,14 +72,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUserInfoState(session);
   };
 
+  // コンポーネントマウント時にユーザー認証を確認
   useEffect(() => {
     verifyUser();
   }, []);
 
+  // 認証状態が未確定の場合は何も表示しない
   if (isAuthenticated === undefined) {
     return <></>;
   }
 
+  // 認証コンテキストプロバイダーを返す
   return (
     <AuthContext.Provider
       value={{ isAuthenticated, sessionToken, role, userId, dispatcherId, areaId, setUserInfo, removeUserInfo }}
@@ -81,6 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
+// 認証情報を使用するためのカスタムフック
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {

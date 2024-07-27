@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::models::order::CompletedOrder;
 
-// Input Data Structure
+// 入力データ構造
 
+/// クライアント注文リクエストのデータ構造
 #[derive(Deserialize, Debug)]
 pub struct ClientOrderRequestDto {
     pub client_id: i32,
@@ -12,6 +13,7 @@ pub struct ClientOrderRequestDto {
     pub car_value: f64,
 }
 
+/// ディスパッチャー注文リクエストのデータ構造
 #[derive(Deserialize, Debug)]
 pub struct DispatcherOrderRequestDto {
     pub order_id: i32,
@@ -20,14 +22,16 @@ pub struct DispatcherOrderRequestDto {
     pub order_time: DateTime<Utc>,
 }
 
+/// 注文ステータス更新リクエストのデータ構造
 #[derive(Deserialize, Debug)]
 pub struct UpdateOrderStatusRequestDto {
     pub order_id: i32,
     pub status: String,
 }
 
-// Output Data Structure
+// 出力データ構造
 
+/// 注文のデータ構造
 #[derive(Serialize, Debug)]
 pub struct OrderDto {
     pub id: i32,
@@ -47,6 +51,7 @@ pub struct OrderDto {
     pub completed_time: Option<DateTime<Utc>>,
 }
 
+/// 完了した注文のデータ構造
 #[derive(Serialize, Debug)]
 pub struct CompletedOrderDto {
     pub id: i32,
@@ -58,6 +63,7 @@ pub struct CompletedOrderDto {
 }
 
 impl CompletedOrderDto {
+    /// CompletedOrder エンティティから CompletedOrderDto を生成する関数
     pub fn from_entity(entity: CompletedOrder) -> Self {
         CompletedOrderDto {
             id: entity.id,

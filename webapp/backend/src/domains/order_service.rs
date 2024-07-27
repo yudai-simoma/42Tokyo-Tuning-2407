@@ -6,14 +6,21 @@ use super::{
     map_service::MapRepository,
     tow_truck_service::TowTruckRepository,
 };
+
 use crate::{
     errors::AppError,
     models::order::{CompletedOrder, Order},
 };
 
+/// 注文リポジトリのトレイト
 pub trait OrderRepository {
+    /// 注文IDに基づいて注文を取得する
     async fn find_order_by_id(&self, id: i32) -> Result<Order, AppError>;
+
+    /// 注文のステータスを更新する
     async fn update_order_status(&self, order_id: i32, status: &str) -> Result<(), AppError>;
+
+    /// ページネーションされた注文リストを取得する
     async fn get_paginated_orders(
         &self,
         page: i32,
@@ -23,27 +30,36 @@ pub trait OrderRepository {
         status: Option<String>,
         area: Option<i32>,
     ) -> Result<Vec<Order>, AppError>;
+
+    /// 新しい注文を作成する
     async fn create_order(
         &self,
         customer_id: i32,
         node_id: i32,
         car_value: f64,
     ) -> Result<(), AppError>;
+
+    /// 注文のディスパッチ情報を更新する
     async fn update_order_dispatched(
         &self,
         id: i32,
         dispatcher_id: i32,
         tow_truck_id: i32,
     ) -> Result<(), AppError>;
+
+    /// 完了した注文を作成する
     async fn create_completed_order(
         &self,
         order_id: i32,
         tow_truck_id: i32,
         completed_time: DateTime<Utc>,
     ) -> Result<(), AppError>;
+
+    /// 全ての完了した注文を取得する
     async fn get_all_completed_orders(&self) -> Result<Vec<CompletedOrder>, AppError>;
 }
 
+/// 注文サービスの構造体
 #[derive(Debug)]
 pub struct OrderService<
     T: OrderRepository + std::fmt::Debug,
@@ -58,12 +74,13 @@ pub struct OrderService<
 }
 
 impl<
-        T: OrderRepository + std::fmt::Debug,
-        U: TowTruckRepository + std::fmt::Debug,
-        V: AuthRepository + std::fmt::Debug,
-        W: MapRepository + std::fmt::Debug,
-    > OrderService<T, U, V, W>
+    T: OrderRepository + std::fmt::Debug,
+    U: TowTruckRepository + std::fmt::Debug,
+    V: AuthRepository + std::fmt::Debug,
+    W: MapRepository + std::fmt::Debug,
+> OrderService<T, U, V, W>
 {
+    /// 新しい注文サービスを作成する
     pub fn new(
         order_repository: T,
         tow_truck_repository: U,
@@ -78,15 +95,18 @@ impl<
         }
     }
 
+    /// 注文のステータスを更新する
     pub async fn update_order_status(&self, order_id: i32, status: &str) -> Result<(), AppError> {
         self.order_repository
             .update_order_status(order_id, status)
             .await
     }
 
+    /// 注文IDに基づいて注文情報を取得する
     pub async fn get_order_by_id(&self, id: i32) -> Result<OrderDto, AppError> {
         let order = self.order_repository.find_order_by_id(id).await?;
 
+        // クライアントのユーザー名を取得
         let client_username = self
             .auth_repository
             .find_user_by_id(order.client_id)
@@ -95,6 +115,7 @@ impl<
             .unwrap()
             .username;
 
+        // ディスパッチャー情報を取得
         let dispatcher = match order.dispatcher_id {
             Some(dispatcher_id) => self
                 .auth_repository
@@ -103,7 +124,6 @@ impl<
                 .unwrap(),
             None => None,
         };
-
         let (dispatcher_user_id, dispatcher_username) = match dispatcher {
             Some(dispatcher) => (
                 Some(dispatcher.user_id),
@@ -119,6 +139,7 @@ impl<
             None => (None, None),
         };
 
+        // レッカー車情報を取得
         let tow_truck = match order.tow_truck_id {
             Some(tow_truck_id) => self
                 .tow_truck_repository
@@ -127,7 +148,6 @@ impl<
                 .unwrap(),
             None => None,
         };
-
         let (driver_user_id, driver_username) = match tow_truck {
             Some(tow_truck) => (
                 Some(tow_truck.driver_id),
@@ -143,6 +163,7 @@ impl<
             None => (None, None),
         };
 
+        // ノードIDに基づいてエリアIDを取得
         let area_id = self
             .map_repository
             .get_area_id_by_node_id(order.node_id)
@@ -168,6 +189,10 @@ impl<
         })
     }
 
+    /// ページネーションされた注文リストを取得する
+    /// 
+    /// ボトルネックになりうる箇所: データベースからの大量データ取得
+    /// - ページネーションとフィルタリングを適用することで、データベースからの取得負荷を軽減しています
     pub async fn get_paginated_orders(
         &self,
         page: i32,
@@ -185,6 +210,7 @@ impl<
         let mut results = Vec::new();
 
         for order in orders {
+            // クライアントのユーザー名を取得
             let client_username = self
                 .auth_repository
                 .find_user_by_id(order.client_id)
@@ -193,54 +219,51 @@ impl<
                 .unwrap()
                 .username;
 
+            // ディスパッチャー情報を取得
             let dispatcher = match order.dispatcher_id {
                 Some(dispatcher_id) => self
                     .auth_repository
                     .find_dispatcher_by_id(dispatcher_id)
-                    .await
-                    .unwrap(),
+                    .await?,
                 None => None,
             };
-
             let (dispatcher_user_id, dispatcher_username) = match dispatcher {
                 Some(dispatcher) => (
                     Some(dispatcher.user_id),
                     Some(
                         self.auth_repository
                             .find_user_by_id(dispatcher.user_id)
-                            .await
-                            .unwrap()
-                            .unwrap()
+                            .await?
+                            .ok_or(AppError::NotFound)?
                             .username,
                     ),
                 ),
                 None => (None, None),
             };
 
+            // レッカー車情報を取得
             let tow_truck = match order.tow_truck_id {
                 Some(tow_truck_id) => self
                     .tow_truck_repository
                     .find_tow_truck_by_id(tow_truck_id)
-                    .await
-                    .unwrap(),
+                    .await?,
                 None => None,
             };
-
             let (driver_user_id, driver_username) = match tow_truck {
                 Some(tow_truck) => (
                     Some(tow_truck.driver_id),
                     Some(
                         self.auth_repository
                             .find_user_by_id(tow_truck.driver_id)
-                            .await
-                            .unwrap()
-                            .unwrap()
+                            .await?
+                            .ok_or(AppError::NotFound)?
                             .username,
                     ),
                 ),
                 None => (None, None),
             };
 
+            // ノードIDに基づいてエリアIDを取得
             let order_area_id = self
                 .map_repository
                 .get_area_id_by_node_id(order.node_id)
@@ -269,6 +292,7 @@ impl<
         Ok(results)
     }
 
+    /// クライアント注文を作成する
     pub async fn create_client_order(
         &self,
         client_id: i32,
@@ -285,6 +309,7 @@ impl<
         }
     }
 
+    /// ディスパッチャー注文を作成する
     pub async fn create_dispatcher_order(
         &self,
         order_id: i32,
@@ -304,21 +329,19 @@ impl<
         self.order_repository
             .update_order_dispatched(order_id, dispatcher_id, tow_truck_id)
             .await?;
-
         self.tow_truck_repository
             .update_status(tow_truck_id, "busy")
             .await?;
-
         Ok(())
     }
 
+    /// 完了した注文を取得する
     pub async fn get_completed_orders(&self) -> Result<Vec<CompletedOrderDto>, AppError> {
         let orders = self.order_repository.get_all_completed_orders().await?;
         let order_dtos = orders
             .into_iter()
             .map(CompletedOrderDto::from_entity)
             .collect();
-
         Ok(order_dtos)
     }
 }

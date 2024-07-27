@@ -12,8 +12,12 @@ type Props = {
   orders: Order[];
 };
 
+// 注文テーブルを表示するコンポーネント
 const OrderTable: React.FC<Props> = ({ orders }) => {
+  // 検索用の状態管理
   const [search, setSearch] = useState("");
+
+  // 検索条件に基づいて注文をフィルタリング
   const filteredOrders = useMemo(() => {
     return orders.filter(
       (order) =>
@@ -22,19 +26,21 @@ const OrderTable: React.FC<Props> = ({ orders }) => {
         order.dispatcher_username?.includes(search) ||
         order.driver_username?.includes(search)
     );
-  }, [search]);
+  }, [search, orders]);
+
   const router = useRouter();
 
+  // 行クリック時の処理
   const handleRowClick = (orderId: number) => () => {
     router.push(`/orders/${orderId}`);
   };
 
+  // ユーザー画像のローダー関数
   const imageLoader = (userId: number) => () => {
     return `/api/user_image/${userId}`;
   };
 
-  // k6の負荷試験用
-  // イメージのロードが終わったらaltにcompletedを追加
+  // k6の負荷試験用：イメージのロードが完了したらaltに"completed"を追加
   const completedImage = () => {
     const images = document.querySelectorAll("img");
     images.forEach((image) => {
@@ -47,12 +53,14 @@ const OrderTable: React.FC<Props> = ({ orders }) => {
     });
   };
 
+  // コンポーネントマウント時に画像完了処理を実行
   useEffect(() => {
     completedImage();
   }, []);
 
   return (
     <>
+      {/* 検索フィールド */}
       <TextField
         fullWidth
         label="Search"
@@ -60,6 +68,7 @@ const OrderTable: React.FC<Props> = ({ orders }) => {
         onChange={(e) => setSearch(e.target.value)}
         style={{ marginBottom: "16px" }}
       />
+      {/* 注文テーブル */}
       <Table id="order-table">
         <TableHead>
           <TableRow>
@@ -73,12 +82,14 @@ const OrderTable: React.FC<Props> = ({ orders }) => {
           </TableRow>
         </TableHead>
         <TableBody>
+          {/* フィルタリングされた注文を最大10件表示 */}
           {filteredOrders.slice(0, 10).map((order) => (
             <TableRow key={order.id} className={styles.row} hover onClick={handleRowClick(order.id)}>
               <TableCell>{order.id}</TableCell>
               <TableCell>{order.status}</TableCell>
               <TableCell>
                 <div className={styles.user}>
+                  {/* クライアントの画像 */}
                   <Image
                     className={styles.icon}
                     loader={imageLoader(order.client_id)}
@@ -93,6 +104,7 @@ const OrderTable: React.FC<Props> = ({ orders }) => {
               <TableCell>
                 {order.dispatcher_user_id ? (
                   <div className={styles.user}>
+                    {/* ディスパッチャーの画像 */}
                     <Image
                       className={styles.icon}
                       loader={imageLoader(order.dispatcher_user_id)}
@@ -110,6 +122,7 @@ const OrderTable: React.FC<Props> = ({ orders }) => {
               <TableCell>
                 {order.driver_user_id ? (
                   <div className={styles.user}>
+                    {/* ドライバーの画像 */}
                     <Image
                       className={styles.icon}
                       loader={imageLoader(order.driver_user_id)}
