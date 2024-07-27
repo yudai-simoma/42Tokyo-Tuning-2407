@@ -183,6 +183,7 @@ CREATE INDEX idx_nodes_coordinates ON nodes(x, y);
 CREATE INDEX idx_edges_node_a_id ON edges(node_a_id);
 CREATE INDEX idx_edges_node_b_id ON edges(node_b_id);
 CREATE INDEX idx_edges_node_ids ON edges(node_a_id, node_b_id);
+CREATE INDEX idx_edges_node_pair_reverse ON edges (node_b_id, node_a_id);
 
 CREATE INDEX idx_locations_tow_truck_id ON locations(tow_truck_id);
 CREATE INDEX idx_locations_node_id ON locations(node_id);
