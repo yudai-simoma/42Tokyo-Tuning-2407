@@ -18,11 +18,17 @@ import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { fetchNearestTowTruck } from "@/api/tow_truck";
 
+// プロパティの型定義
 type Props = {
   order: Order;
 };
 
+/**
+ * 注文詳細を表示するコンポーネント
+ * @param order - 注文情報
+ */
 const OrderDetail: React.FC<Props> = ({ order }) => {
+  // 状態管理用のフック
   const [dialogOpen, setDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -30,21 +36,25 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
   const [error, setError] = useState("");
   const { sessionToken, dispatcherId } = useAuth();
 
+  // ダイアログを開く処理
   const handleDialogOpen = async () => {
     await handleFetchNearestTowTruck();
     setDialogOpen(true);
   };
 
+  // ダイアログを閉じる処理
   const handleDialogClose = () => {
     setDialogOpen(false);
     setError("");
   };
 
+  // スナックバーを閉じる処理
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
     setSnackbarMessage("");
   };
 
+  // 最寄りのレッカー車を取得する処理
   const handleFetchNearestTowTruck = async () => {
     try {
       if (!sessionToken) {
@@ -59,6 +69,7 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
     }
   };
 
+  // レッカー車を手配する処理
   const handleArrangeTowTruck = async () => {
     try {
       if (!sessionToken || !dispatcherId || !nearestTowTruckId) {

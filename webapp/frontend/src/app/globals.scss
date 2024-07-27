@@ -1,73 +1,108 @@
 :root {
+  /* 基本フォントファミリの設定 */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* 行間の設定 */
   line-height: 1.5;
+  /* フォントの太さの設定 */
   font-weight: 400;
 
+  /* カラースキームの設定（ライトモードとダークモードの両方をサポート） */
   color-scheme: light dark;
+  /* テキストの色の設定 */
   color: rgba(255, 255, 255, 0.87);
+  /* 背景色の設定 */
   background-color: #242424;
 
+  /* フォントの合成を無効化 */
   font-synthesis: none;
+  /* テキストレンダリングの最適化 */
   text-rendering: optimizeLegibility;
+  /* フォントのスムージングの設定 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 a {
+  /* リンクのフォントの太さの設定 */
   font-weight: 500;
+  /* リンクの色の設定 */
   color: #646cff;
+  /* リンクのテキスト装飾の継承 */
   text-decoration: inherit;
 }
 
 a:hover {
+  /* リンクのホバー時の色の設定 */
   color: #535bf2;
 }
 
 body {
+  /* ボディの余白をリセット */
   margin: 0;
+  /* フレックスボックスを使用して中央揃え */
   display: flex;
   place-items: center;
+  /* 最小幅の設定 */
   min-width: 320px;
+  /* 最小高さの設定 */
   min-height: 100vh;
 }
 
 h1 {
+  /* 見出しのフォントサイズの設定 */
   font-size: 3.2em;
+  /* 見出しの行間の設定 */
   line-height: 1.1;
 }
 
 button {
+  /* ボタンの角を丸くする */
   border-radius: 8px;
+  /* ボタンの境界線の設定 */
   border: 1px solid transparent;
+  /* ボタンのパディングの設定 */
   padding: 0.6em 1.2em;
+  /* ボタンのフォントサイズの設定 */
   font-size: 1em;
+  /* ボタンのフォントの太さの設定 */
   font-weight: 500;
+  /* ボタンのフォントファミリの継承 */
   font-family: inherit;
+  /* ボタンの背景色の設定 */
   background-color: #1a1a1a;
+  /* ボタンのカーソルの設定 */
   cursor: pointer;
+  /* ボタンの境界線色のトランジションの設定 */
   transition: border-color 0.25s;
 }
 
 button:hover {
+  /* ボタンのホバー時の境界線色の設定 */
   border-color: #646cff;
 }
 
 button:focus,
 button:focus-visible {
+  /* ボタンがフォーカスされたときのアウトラインの設定 */
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* ユーザーのカラースキームがライトモードの場合のスタイル */
 @media (prefers-color-scheme: light) {
   :root {
+    /* テキストの色の設定 */
     color: #213547;
+    /* 背景色の設定 */
     background-color: #ffffff;
   }
 
   a:hover {
+    /* リンクのホバー時の色の設定 */
     color: #747bff;
   }
 
   button {
+    /* ボタンの背景色の設定 */
     background-color: #f9f9f9;
   }
 }
