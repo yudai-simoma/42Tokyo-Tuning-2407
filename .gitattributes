@@ -1,2 +1,0 @@
-prometheus-2.53.1.linux-amd64/prometheus filter=lfs diff=lfs merge=lfs -text
-prometheus-2.53.1.linux-amd64/promtool filter=lfs diff=lfs merge=lfs -text
