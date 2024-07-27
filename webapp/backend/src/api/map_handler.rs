@@ -12,6 +12,9 @@ use actix_web::{web, HttpResponse};
 /// 
 /// 成功した場合、HTTP 200 OK レスポンスを返す
 /// 失敗した場合、AppError を返す
+/// 
+/// ボトルネックになりうる箇所: データベース操作
+/// - エッジの更新処理はデータベースへのアクセスを伴うため、非同期処理として実装されている
 pub async fn update_edge_handler(
     service: web::Data<MapService<MapRepositoryImpl>>,
     req: web::Json<UpdateEdgeRequestDto>,
