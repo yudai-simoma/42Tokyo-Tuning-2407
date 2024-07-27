@@ -26,7 +26,7 @@ const OrderTable: React.FC<Props> = ({ orders }) => {
         order.dispatcher_username?.includes(search) ||
         order.driver_username?.includes(search)
     );
-  }, [search, orders]);
+  }, [search]);
 
   const router = useRouter();
 
