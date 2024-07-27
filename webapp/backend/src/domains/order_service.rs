@@ -99,8 +99,7 @@ impl<
     pub async fn update_order_status(&self, order_id: i32, status: &str) -> Result<(), AppError> {
         self.order_repository
             .update_order_status(order_id, status)
-            .await?;
-        Ok(())
+            .await
     }
 
     /// 注文IDに基づいて注文情報を取得する
@@ -111,8 +110,9 @@ impl<
         let client_username = self
             .auth_repository
             .find_user_by_id(order.client_id)
-            .await?
-            .ok_or(AppError::NotFound)?
+            .await
+            .unwrap()
+            .unwrap()
             .username;
 
         // ディスパッチャー情報を取得
@@ -120,7 +120,8 @@ impl<
             Some(dispatcher_id) => self
                 .auth_repository
                 .find_dispatcher_by_id(dispatcher_id)
-                .await?,
+                .await
+                .unwrap(),
             None => None,
         };
         let (dispatcher_user_id, dispatcher_username) = match dispatcher {
@@ -129,8 +130,9 @@ impl<
                 Some(
                     self.auth_repository
                         .find_user_by_id(dispatcher.user_id)
-                        .await?
-                        .ok_or(AppError::NotFound)?
+                        .await
+                        .unwrap()
+                        .unwrap()
                         .username,
                 ),
             ),
@@ -142,7 +144,8 @@ impl<
             Some(tow_truck_id) => self
                 .tow_truck_repository
                 .find_tow_truck_by_id(tow_truck_id)
-                .await?,
+                .await
+                .unwrap(),
             None => None,
         };
         let (driver_user_id, driver_username) = match tow_truck {
@@ -151,8 +154,9 @@ impl<
                 Some(
                     self.auth_repository
                         .find_user_by_id(tow_truck.driver_id)
-                        .await?
-                        .ok_or(AppError::NotFound)?
+                        .await
+                        .unwrap()
+                        .unwrap()
                         .username,
                 ),
             ),
@@ -163,7 +167,8 @@ impl<
         let area_id = self
             .map_repository
             .get_area_id_by_node_id(order.node_id)
-            .await?;
+            .await
+            .unwrap();
 
         Ok(OrderDto {
             id: order.id,
@@ -209,8 +214,9 @@ impl<
             let client_username = self
                 .auth_repository
                 .find_user_by_id(order.client_id)
-                .await?
-                .ok_or(AppError::NotFound)?
+                .await
+                .unwrap()
+                .unwrap()
                 .username;
 
             // ディスパッチャー情報を取得
@@ -261,7 +267,8 @@ impl<
             let order_area_id = self
                 .map_repository
                 .get_area_id_by_node_id(order.node_id)
-                .await?;
+                .await
+                .unwrap();
 
             results.push(OrderDto {
                 id: order.id,

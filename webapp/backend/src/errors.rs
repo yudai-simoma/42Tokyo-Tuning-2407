@@ -38,7 +38,9 @@ impl ResponseError for AppError {
             AppError::Unauthorized => HttpResponse::Unauthorized().json(error_response),
             AppError::NotFound => HttpResponse::NotFound().json(error_response),
             AppError::Conflict => HttpResponse::Conflict().json(error_response),
-            AppError::InternalServerError => HttpResponse::InternalServerError().json(error_response),
+            AppError::InternalServerError => {
+                HttpResponse::InternalServerError().json(error_response)
+            }
             AppError::SqlxError(_) => HttpResponse::InternalServerError().json(error_response),
         }
     }
