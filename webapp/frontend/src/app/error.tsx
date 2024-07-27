@@ -1,50 +1,25 @@
-import { cookies } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
+// "use client" ディレクティブは、このコンポーネントがクライアントサイドでレンダリングされることを示します。
+"use client";
 
-/**
- * GETリクエストを処理する関数
- * セッション情報を取得し、認証されていない場合は401エラーを返す
- * @returns NextResponse - セッション情報またはエラーメッセージを含むレスポンス
- */
-export async function GET() {
-  // クッキーからセッション情報を取得
-  const session = cookies().get("session")?.value;
+import { useEffect } from "react";
 
-  // セッションが存在しない場合は401エラーを返す
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
+// エラーハンドリング用のカスタムコンポーネント
+export default function Error({ error }: { error: Error & { digest?: string } }) {
+  // useEffectフックを使用して、エラーが発生した際にコンソールにエラーメッセージをログ出力
+  useEffect(() => {
+    console.error(error);
+  }, [error]); // errorが変更されるたびにこのエフェクトが実行される
 
-  // セッション情報をJSON形式で返す
-  return NextResponse.json(JSON.parse(session), { status: 200 });
+  return (
+    <div id="error-page">
+      {/* ユーザーフレンドリーなエラーメッセージを表示 */}
+      <h1>Oops!</h1>
+      <p>Sorry, an unexpected error has occurred.</p>
+      <p>
+        {/* 実際のエラーメッセージを表示 */}
+        <i>{error.message}</i>
+      </p>
+    </div>
+  );
 }
 
-/**
- * POSTリクエストを処理する関数
- * リクエストボディからセッション情報を取得し、クッキーに設定する
- * @param req - NextRequestオブジェクト
- * @returns NextResponse - 成功メッセージを含むレスポンス
- */
-export async function POST(req: NextRequest) {
-  // リクエストボディからセッション情報を取得
-  const session = await req.json();
-  
-  // セッション情報をクッキーに設定（有効期限3600秒）
-  cookies().set("session", JSON.stringify(session), { maxAge: 3600 });
-
-  // 成功メッセージを返す
-  return NextResponse.json({ message: "Set cookie successfully" });
-}
-
-/**
- * DELETEリクエストを処理する関数
- * セッションクッキーを削除する
- * @returns NextResponse - 成功メッセージを含むレスポンス
- */
-export async function DELETE() {
-  // セッションクッキーを削除
-  cookies().delete("session");
-
-  // 成功メッセージを返す
-  return NextResponse.json({ message: "Delete cookie successfully" });
-}
