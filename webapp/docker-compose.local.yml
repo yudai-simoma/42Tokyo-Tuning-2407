@@ -19,7 +19,7 @@ services:
       timeout: 10s
       retries: 10
       start_period: 600s
-    entrypoint: ["sh", "-c", "cargo watch -x run"]
+    entrypoint: ["sh", "-c", "apk add --no-cache procps && cargo watch -x run"]
 
   frontend:
     container_name: frontend
@@ -39,7 +39,7 @@ services:
       timeout: 10s
       retries: 10
       start_period: 300s
-    entrypoint: ["sh", "-c", "yarn install --frozen-lockfile && yarn dev"]
+    entrypoint: ["sh", "-c", "apk add --no-cache procps && yarn install --frozen-lockfile && yarn dev"]
 
   db:
     container_name: mysql
@@ -55,6 +55,7 @@ services:
       - ./mysql/init:/docker-entrypoint-initdb.d
       - ./mysql/conf.d:/etc/mysql/conf.d
       - ./mysql/migration:/etc/mysql/migration
+      - ./mysql/log/:/var/log/mysql/
     networks:
       - webapp-network
     healthcheck:
@@ -63,6 +64,7 @@ services:
       timeout: 30s
       retries: 10
       start_period: 300s
+    entrypoint: ["sh", "-c", "microdnf install -y procps-ng && docker-entrypoint.sh mysqld"]
 
   nginx:
     container_name: nginx
@@ -78,6 +80,7 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+    entrypoint: ["sh", "-c", "apt update && apt install -y procps && nginx -g 'daemon off;'"]
 
 networks:
   webapp-network:
