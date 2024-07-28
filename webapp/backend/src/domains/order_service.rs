@@ -1,4 +1,6 @@
 use chrono::{DateTime, Utc};
+use sqlx::{Pool, Transaction, MySql};
+use log::error;
 
 use super::{
     auth_service::AuthRepository,
@@ -32,24 +34,21 @@ pub trait OrderRepository {
     ) -> Result<Vec<Order>, AppError>;
 
     /// 新しい注文を作成する
-    async fn create_order(
-        &self,
-        customer_id: i32,
-        node_id: i32,
-        car_value: f64,
-    ) -> Result<(), AppError>;
+    async fn create_order(&self, customer_id: i32, node_id: i32, car_value: f64) -> Result<(), AppError>;
 
     /// 注文のディスパッチ情報を更新する
-    async fn update_order_dispatched(
+    async fn update_order_dispatched<'a>(
         &self,
+        tx: &mut Transaction<'a, MySql>,
         id: i32,
         dispatcher_id: i32,
         tow_truck_id: i32,
     ) -> Result<(), AppError>;
 
     /// 完了した注文を作成する
-    async fn create_completed_order(
+    async fn create_completed_order<'a>(
         &self,
+        tx: &mut Transaction<'a, MySql>,
         order_id: i32,
         tow_truck_id: i32,
         completed_time: DateTime<Utc>,
@@ -67,6 +66,7 @@ pub struct OrderService<
     V: AuthRepository + std::fmt::Debug,
     W: MapRepository + std::fmt::Debug,
 > {
+    pool: Pool<MySql>,
     order_repository: T,
     tow_truck_repository: U,
     auth_repository: V,
@@ -82,12 +82,14 @@ impl<
 {
     /// 新しい注文サービスを作成する
     pub fn new(
+        pool: Pool<MySql>,
         order_repository: T,
         tow_truck_repository: U,
         auth_repository: V,
         map_repository: W,
     ) -> Self {
         OrderService {
+            pool,
             order_repository,
             tow_truck_repository,
             auth_repository,
@@ -110,9 +112,8 @@ impl<
         let client_username = self
             .auth_repository
             .find_user_by_id(order.client_id)
-            .await
-            .unwrap()
-            .unwrap()
+            .await?
+            .ok_or(AppError::NotFound)?
             .username;
 
         // ディスパッチャー情報を取得
@@ -120,8 +121,7 @@ impl<
             Some(dispatcher_id) => self
                 .auth_repository
                 .find_dispatcher_by_id(dispatcher_id)
-                .await
-                .unwrap(),
+                .await?,
             None => None,
         };
         let (dispatcher_user_id, dispatcher_username) = match dispatcher {
@@ -130,9 +130,8 @@ impl<
                 Some(
                     self.auth_repository
                         .find_user_by_id(dispatcher.user_id)
-                        .await
-                        .unwrap()
-                        .unwrap()
+                        .await?
+                        .ok_or(AppError::NotFound)?
                         .username,
                 ),
             ),
@@ -144,8 +143,7 @@ impl<
             Some(tow_truck_id) => self
                 .tow_truck_repository
                 .find_tow_truck_by_id(tow_truck_id)
-                .await
-                .unwrap(),
+                .await?,
             None => None,
         };
         let (driver_user_id, driver_username) = match tow_truck {
@@ -154,9 +152,8 @@ impl<
                 Some(
                     self.auth_repository
                         .find_user_by_id(tow_truck.driver_id)
-                        .await
-                        .unwrap()
-                        .unwrap()
+                        .await?
+                        .ok_or(AppError::NotFound)?
                         .username,
                 ),
             ),
@@ -167,8 +164,7 @@ impl<
         let area_id = self
             .map_repository
             .get_area_id_by_node_id(order.node_id)
-            .await
-            .unwrap();
+            .await?;
 
         Ok(OrderDto {
             id: order.id,
@@ -190,9 +186,6 @@ impl<
     }
 
     /// ページネーションされた注文リストを取得する
-    /// 
-    /// ボトルネックになりうる箇所: データベースからの大量データ取得
-    /// - ページネーションとフィルタリングを適用することで、データベースからの取得負荷を軽減しています
     pub async fn get_paginated_orders(
         &self,
         page: i32,
@@ -214,9 +207,8 @@ impl<
             let client_username = self
                 .auth_repository
                 .find_user_by_id(order.client_id)
-                .await
-                .unwrap()
-                .unwrap()
+                .await?
+                .ok_or(AppError::NotFound)?
                 .username;
 
             // ディスパッチャー情報を取得
@@ -267,8 +259,7 @@ impl<
             let order_area_id = self
                 .map_repository
                 .get_area_id_by_node_id(order.node_id)
-                .await
-                .unwrap();
+                .await?;
 
             results.push(OrderDto {
                 id: order.id,
@@ -317,31 +308,38 @@ impl<
         tow_truck_id: i32,
         order_time: DateTime<Utc>,
     ) -> Result<(), AppError> {
-        if (self
-            .order_repository
-            .create_completed_order(order_id, tow_truck_id, order_time)
-            .await)
-            .is_err()
-        {
+        let mut tx = self.pool.begin().await.map_err(|e| {
+            error!("Failed to begin transaction: {:?}", e);
+            AppError::InternalServerError
+        })?;
+
+        if self.order_repository.create_completed_order(&mut tx, order_id, tow_truck_id, order_time).await.is_err() {
+            tx.rollback().await.map_err(|e| {
+                error!("Failed to rollback transaction: {:?}", e);
+                AppError::InternalServerError
+            })?;
             return Err(AppError::BadRequest);
         }
 
-        self.order_repository
-            .update_order_dispatched(order_id, dispatcher_id, tow_truck_id)
-            .await?;
-        self.tow_truck_repository
-            .update_status(tow_truck_id, "busy")
-            .await?;
+        if self.order_repository.update_order_dispatched(&mut tx, order_id, dispatcher_id, tow_truck_id).await.is_err() {
+            tx.rollback().await.map_err(|e| {
+                error!("Failed to rollback transaction: {:?}", e);
+                AppError::InternalServerError
+            })?;
+            return Err(AppError::InternalServerError);
+        }
+
+        tx.commit().await.map_err(|e| {
+            error!("Failed to commit transaction: {:?}", e);
+            AppError::InternalServerError
+        })?;
+
         Ok(())
     }
 
-    /// 完了した注文を取得する
     pub async fn get_completed_orders(&self) -> Result<Vec<CompletedOrderDto>, AppError> {
         let orders = self.order_repository.get_all_completed_orders().await?;
-        let order_dtos = orders
-            .into_iter()
-            .map(CompletedOrderDto::from_entity)
-            .collect();
+        let order_dtos = orders.into_iter().map(CompletedOrderDto::from_entity).collect();
         Ok(order_dtos)
     }
 }

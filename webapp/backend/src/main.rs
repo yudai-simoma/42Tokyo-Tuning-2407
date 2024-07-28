@@ -15,6 +15,7 @@ use repositories::auth_repository::AuthRepositoryImpl;
 use repositories::map_repository::MapRepositoryImpl;
 use repositories::order_repository::OrderRepositoryImpl;
 use repositories::tow_truck_repository::TowTruckRepositoryImpl;
+use sqlx::{MySql, Pool};
 
 mod api;
 mod domains;
@@ -28,7 +29,14 @@ mod utils;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // データベース接続プールを作成
-    let pool = infrastructure::db::create_pool().await;
+    let pool: Pool<MySql> = match infrastructure::db::create_pool().await {
+        Ok(pool) => pool,
+        Err(e) => {
+            eprintln!("Failed to create pool: {:?}", e);
+            std::process::exit(1);
+        }
+    };
+
     let mut port = 8080;
 
     // デバッグモードの場合、ポートを変更
@@ -46,6 +54,7 @@ async fn main() -> std::io::Result<()> {
         MapRepositoryImpl::new(pool.clone()),
     ));
     let order_service = web::Data::new(OrderService::new(
+        pool.clone(),
         OrderRepositoryImpl::new(pool.clone()),
         TowTruckRepositoryImpl::new(pool.clone()),
         AuthRepositoryImpl::new(pool.clone()),

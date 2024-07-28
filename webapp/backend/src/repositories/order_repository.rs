@@ -2,7 +2,9 @@ use crate::domains::order_service::OrderRepository;
 use crate::errors::AppError;
 use crate::models::order::{CompletedOrder, Order};
 use chrono::{DateTime, Utc};
+use log::error;
 use sqlx::mysql::MySqlPool;
+use sqlx::{Transaction, MySql};
 
 /// 注文リポジトリの実装構造体
 #[derive(Debug)]
@@ -192,6 +194,7 @@ impl OrderRepository for OrderRepositoryImpl {
     /// 成功した場合は `()` を返し、失敗した場合は `AppError` を返す
     async fn update_order_dispatched(
         &self,
+        tx: &mut Transaction<'_, MySql>,
         id: i32,
         dispatcher_id: i32,
         tow_truck_id: i32,
@@ -202,8 +205,12 @@ impl OrderRepository for OrderRepositoryImpl {
         .bind(dispatcher_id)
         .bind(tow_truck_id)
         .bind(id)
-        .execute(&self.pool)
-        .await?;
+        .execute(tx)
+        .await
+        .map_err(|e| {
+            error!("Failed to update order dispatched: {:?}", e);
+            AppError::InternalServerError
+        })?;
 
         Ok(())
     }
@@ -217,6 +224,7 @@ impl OrderRepository for OrderRepositoryImpl {
     /// 成功した場合は `()` を返し、失敗した場合は `AppError` を返す
     async fn create_completed_order(
         &self,
+        tx: &mut Transaction<'_, MySql>,
         order_id: i32,
         tow_truck_id: i32,
         completed_time: DateTime<Utc>,
@@ -225,8 +233,12 @@ impl OrderRepository for OrderRepositoryImpl {
             .bind(order_id)
             .bind(tow_truck_id)
             .bind(completed_time)
-            .execute(&self.pool)
-            .await?;
+            .execute(tx) // 修正: tx を使用
+            .await
+            .map_err(|e| {
+                error!("Failed to create completed order: {:?}", e);
+                AppError::InternalServerError
+            })?;
 
         Ok(())
     }

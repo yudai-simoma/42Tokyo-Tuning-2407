@@ -196,7 +196,9 @@ CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_node_id ON orders(node_id);
 CREATE INDEX idx_orders_order_time ON orders(order_time);
 CREATE INDEX idx_orders_completed_time ON orders(completed_time);
+CREATE INDEX idx_orders_dispatcher_tow ON orders (dispatcher_id, tow_truck_id, id);
 
 CREATE INDEX idx_completed_orders_order_id ON completed_orders(order_id);
 CREATE INDEX idx_completed_orders_tow_truck_id ON completed_orders(tow_truck_id);
 CREATE INDEX idx_completed_orders_completed_time ON completed_orders(completed_time);
+CREATE INDEX idx_completed_orders ON completed_orders (order_id, tow_truck_id);
