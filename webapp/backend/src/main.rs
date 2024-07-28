@@ -30,10 +30,10 @@ mod utils;
 async fn main() -> std::io::Result<()> {
     // データベース接続プールを作成
     let pool: Pool<MySql> = match infrastructure::db::create_pool().await {
-        Ok(pool) => pool,
+        Ok(pool) => pool, // Okの場合はプールを返す
         Err(e) => {
             eprintln!("Failed to create pool: {:?}", e);
-            std::process::exit(1);
+            std::process::exit(1); // Errの場合はプログラムを終了
         }
     };
 
