@@ -140,12 +140,12 @@ impl MapRepository for MapRepositoryImpl {
             .execute(&mut tx)
             .await?;
     
-        sqlx::query("UPDATE edges SET weight = ? WHERE node_a_id = ? AND node_b_id = ?")
-            .bind(weight)
-            .bind(node_b_id)
-            .bind(node_a_id)
-            .execute(&mut tx)
-            .await?;
+        // sqlx::query("UPDATE edges SET weight = ? WHERE node_a_id = ? AND node_b_id = ?")
+        //     .bind(weight)
+        //     .bind(node_b_id)
+        //     .bind(node_a_id)
+        //     .execute(&mut tx)
+        //     .await?;
     
         tx.commit().await?;
     
