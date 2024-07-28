@@ -117,29 +117,30 @@ impl<T: AuthRepository + std::fmt::Debug> AuthService<T> {
                     .create_session(user.id, &session_token)
                     .await?;
 
-                match user.role.as_str() {
-                    "dispatcher" => {
-                        match self.repository.find_dispatcher_by_user_id(user.id).await? {
-                            Some(dispatcher) => Ok(LoginResponseDto {
-                                user_id: user.id,
-                                username: user.username,
-                                session_token,
-                                role: user.role.clone(),
-                                dispatcher_id: Some(dispatcher.id),
-                                area_id: Some(dispatcher.area_id),
-                            }),
-                            None => Err(AppError::InternalServerError),
-                        }
+                // **最適化部分の開始**
+                if user.role == "dispatcher" {
+                    match self.repository.find_dispatcher_by_user_id(user.id).await? {
+                        Some(dispatcher) => Ok(LoginResponseDto {
+                            user_id: user.id,
+                            username: user.username,
+                            session_token,
+                            role: user.role.clone(),
+                            dispatcher_id: Some(dispatcher.id),
+                            area_id: Some(dispatcher.area_id),
+                        }),
+                        None => Err(AppError::InternalServerError),
                     }
-                    _ => Ok(LoginResponseDto {
+                } else {
+                    Ok(LoginResponseDto {
                         user_id: user.id,
                         username: user.username,
                         session_token,
                         role: user.role.clone(),
                         dispatcher_id: None,
                         area_id: None,
-                    }),
+                    })
                 }
+                // **最適化部分の終了**
             }
             None => Err(AppError::Unauthorized),
         }
